@@ -1,0 +1,476 @@
+<!doctype html>
+<!--
+	The Brachistochrone Curve
+	Developed by: Patrick Hadlaw
+	Copyright: Patrick Stanislaw Hadlaw
+-->
+<html>
+    <head>
+        <title>The Brachistochrone Curve</title>
+		<link rel="stylesheet" type="text/css" href="Brachistochrone/stylesheet.css">
+    </head>
+    
+    <body>
+		<div id="container">
+			<div class="header"></div>
+			<div id="banner">
+				<h2 style="text-align: center; margin: 0px; padding-left:1%">Analysing the Brachistochrone problem using LRAM/RRAM approximation</h2>
+				<h4 style="text-align: center; margin: 0px; padding-left:1%">By: Patrick Hadlaw</h4>
+			</div>
+			<div id="body">
+			
+				<!-- Brachistochrone curve simulation canvas -->
+			
+				<canvas width="600" height="370" id="frame"></canvas>
+				
+				<!-- Leaderboard table: updated every 5s shows the top ten players -->
+				
+				<table id="leaderboard" style="position: absolute; top: 180px; right: 1%;">
+					<tr>
+						<td><b>Time</b></td>
+						<td><b>Name</b></td>
+					</tr>
+				</table>
+				
+				<!-- Name input for leaderboard data -->
+				
+				<input id="name" placeholder="Name" style="position: absolute; top 150px; right: calc(50% - 300px)"/>
+				
+				<br/>
+				
+				<!-- Start/drop and reset buttons -->
+				
+				<div>
+					<div class="button" style="top: 590px; left: calc(50% - 300px);" onclick="start()">Drop</div>
+					<div class="button" style="top: 590px; right: calc(50% - 300px);" onclick="reset()">Reset</div>
+				</div>
+				
+				<br/>
+				<br/>
+				
+				<!-- Sampling time slider: allows user to choose how accurate the datatable will be and thus how accurate the Riemman Sum will be (more rectangles) -->
+				
+				<b>Sampling time (smaller sampling time creates smaller <br/>
+				rectangles which are more accurate).</b><br/>
+				<input id="slider" type="range"  value="30" min="30" max="600" step="30" onchange="slider(this.value)"/>
+				<div id="sliderNum"></div>
+				
+				<h3>What is the fastest path from the ball to the finish line?</h3>
+				
+				<div width="500px">
+					<p>
+						You can find out!
+						<br/>
+						Just click to draw a straight line, or hold click <br/>
+						to trace a line. Once you have drawn your path press drop and watch the ball go.<br/>
+						<b>Do not</b> start drawing your line very close to ball!
+						
+						<br/><br/>
+						This graph below shows the area (using rectangles) under the curve of 1/v in respect to s, where v is velocity and s is arc distance.<br/>
+						The data comes from the table which is sampled according to the sampling time<br/>
+						This represents the time taken for the ball to travel from start to finish.<br/>
+						x axis is s, y axis is 1/v.
+					</p>
+				</div>
+				
+				<!-- Data table: updated when ball is moving along line, stops updating when finish line is crossed, deltaS values represent the widths of rectangles while the 1/velocity values represent the height of the rectangles -->
+				
+				<table id="dataTable" style = "position: absolute; top: 180px; left: 0; font-size: 12px">
+					<tr>
+						<td><b>&#916;s</b></td>
+						<td><b>1/v</b></td>
+					</tr>
+				</table>
+				
+				<!-- Riemman Sum canvas -->
+				
+				<canvas id="frame2"></canvas>
+				
+				<br/>
+				
+				<!-- Image of integral representing time of ball rolling along curve -->
+				
+				<img src="Brachistochrone/integral.png"/><div id="calcTime"></div><br/>
+				
+			</div>
+			<div class="footer"><b>Copyright Patrick Hadlaw</b></div>
+		</div>
+        <script>
+			/*
+			// Vector class featuring magnitude, extend(resizes the vector to given value), theta, rotate, dot-product and normalise functions
+			*/
+			function Vector(x, y){
+				this.x = x;
+				this.y = y;
+				
+				// Returns magnitude of vector
+				this.magnitude = function (){ return Math.sqrt((this.x*this.x) + (this.y*this.y)); };
+				
+				// Extends the vector to new magnitude of m
+				this.extend = function (m){
+					var v = this.normalise();
+					this.x = v.x * m;
+					this.y = v.y * m;
+				};
+				
+				// Returns standard angle
+				this.theta = function (){ return Math.atan(y/x); };
+				
+				// Rotates vector by angle: t
+				this.rotate = function (t){
+					var cs = Math.cos(t);
+					var sn = Math.sin(t);
+					var x2 = this.x * cs - this.y * sn;
+					this.y = this.x * sn + this.y * cs;
+					this.x = x2;
+				};
+				
+				// Returns the dot product
+				this.dotProduct = function (v){
+					var x = this.x * v.x;
+					var y = this.y * v.y;
+					return x+y;
+				};
+				
+				// Returns normalised vector
+				this.normalise = function () {
+					return new Vector(this.x/this.magnitude(), this.y/this.magnitude());
+				};
+			}
+			
+			// Global vars
+			var BrachCurve = {};
+			
+            BrachCurve.canvas = document.getElementById("frame"); // First canvas displays simulation
+            BrachCurve.context = BrachCurve.canvas.getContext("2d");
+			BrachCurve.interval = setInterval(update, 30); // Update at 30 times per second
+			BrachCurve.dt = 0.03; // Time step
+			BrachCurve.isStarted = false;
+			BrachCurve.line = [100, 105]; // Array of points representing a line (first point is right under the ball)
+			BrachCurve.lineLength = 0; // Line length, which is calculated on start
+			BrachCurve.isMouseIn = false; // Is whether the mouse is in canvas or not
+			BrachCurve.time = 0; // Current time
+			BrachCurve.finishTime = 0; // Time of finish, is ajaxed to server where name and final time is placed on leaderboard
+			BrachCurve.isFinished = false; // Is whether the ball has passed finished line or not
+			BrachCurve.conversionFactor = 20;
+			BrachCurve.table = []; // Stores the current values of dataTable which consists: deltaS values and 1/velocity values
+			BrachCurve.samplerCounter = 0; // Counts timesteps until sampling time is reached than datatable is updated
+			BrachCurve.isFirstSample = true; // Doesnt count the very first sample because of precision glitches
+			BrachCurve.deltaS = 0; // Contains current deltaS value between samples
+			
+			// Ball vars
+			var Ball = {};
+			
+			Ball.posX = 100; // x position of centre of ball
+			Ball.posY = 100; // y position of centre of ball
+			Ball.radius = 5;
+			Ball.mass = 1.0;
+			Ball.a = -(Ball.mass * 9.81 * BrachCurve.conversionFactor); // Balls acceleration due to gravity
+			Ball.deltaD = 0; // Displacement along line
+			Ball.currentSeg = 0; // Current segment the ball lies on, where currentSeg*2 represents the x value of first point on line segment
+			Ball.v = 0; // Is the velocity of ball parallel to line while still on line
+			Ball.vf = new Vector(0, 0); // Is velocity of ball after fallen off line
+			Ball.isOnLine = true; // Is whether the ball is on or off the line
+			
+			//Riemman Sum vars
+			var RieSum = {};
+			
+			
+			
+			// Reset game: on click of reset button, sets all vars back to their original state
+			function reset(){
+				BrachCurve.isStarted = false;
+				BrachCurve.isFinished = false;
+				Ball.posX = 100;
+				Ball.posY = 100;
+				Ball.v = 0; 
+				BrachCurve.table = [];
+				BrachCurve.samplerCounter = 0;
+				BrachCurve.isFirstSample = true;
+				Ball.vf = new Vector(0, 0); 
+				BrachCurve.line = [100, 105];
+				BrachCurve.lineLength = 0;
+				Ball.deltaD = 0;
+				Ball.currentSeg = 0;
+				Ball.isOnLine = true;
+				BrachCurve.time = 0;
+				BrachCurve.finishTime = 0;
+				updateTable();
+				BrachCurve.canvas.addEventListener("mousedown", onMouseDown);
+			}
+			
+			
+			
+			//Get cursor position
+			BrachCurve.cursorX = 0;
+			BrachCurve.cursorY = 0;
+			document.onmousemove = function(e){
+				BrachCurve.cursorX = e.pageX;
+				BrachCurve.cursorY = e.pageY;
+			}
+			
+			function slider(newValue) // Sampling time slider
+			{
+				document.getElementById("sliderNum").innerHTML=newValue + "ms";
+			}
+			slider(document.getElementById("slider").value);
+			
+			// This function updates dataTable by inserting change in position along curve and 1/velocity values: which correspond to the dimensions of rectangles in Riemman Sum
+			function updateTable(){
+				var t = "<td><b>&#916;s</b></td><td><b>1/v</b></td>";
+				for(var i = 1; i < BrachCurve.table.length && i < 50; i+=2){
+					t = t + "<tr><td>" + Math.round(BrachCurve.table[i-1]*1000)/1000 + "</td><td>" + Math.round(BrachCurve.table[i]*1000)/1000 + "</td></tr>"; // Insert data into table and round to thousandth digit
+				}
+				if(BrachCurve.table.length - 1 >= 50){ // if datatable is longer than 25 rows, than show ...
+					t = t + "<tr><td>...</td><td>...</td></tr>";
+				}
+				document.getElementById("dataTable").innerHTML = t; // Update table
+			}
+			
+			
+			
+			/*
+			// function ballMotion calculates position and velocity of ball along line,
+			//	position is calculated by tracking balls distance along line then setting
+			//	balls position one radius away from line. Involves no collision calculation.
+			*/
+			function ballMotion(){
+				// if no line was drawn then drop the ball straight down			
+				if (BrachCurve.lineLength <= 0){ 
+					Ball.vf.y = Ball.vf.y + -Ball.a*BrachCurve.dt;
+					Ball.posX += Ball.vf.x*BrachCurve.dt;
+					Ball.posY += Ball.vf.y*BrachCurve.dt;
+				}
+				// if ball hits the left side of line then calculate trajectory coming off the line
+				else if(Ball.deltaD < -1 && Ball.isOnLine){ 
+					Ball.vf = new Vector(BrachCurve.line[2] - BrachCurve.line[0], BrachCurve.line[3] - BrachCurve.line[1]);
+					Ball.vf.extend(Ball.v);
+					Ball.vf.y = Ball.vf.y + -Ball.a*BrachCurve.dt;
+					var normal = new Vector(Ball.vf.x, Ball.vf.y);
+					normal = normal.normalise();
+					normal.rotate(Math.PI * 0.5);
+					normal.extend(Ball.radius);
+					Ball.posX = BrachCurve.line[0] + Ball.vf.x*BrachCurve.dt + normal.x;
+					Ball.posY = BrachCurve.line[1] + Ball.vf.y*BrachCurve.dt + normal.y;
+					Ball.isOnLine = false;
+				}
+				// if ball hits the right side of line then calculate trajectory coming off the line
+				else if (Ball.deltaD >= BrachCurve.lineLength && Ball.isOnLine){
+					Ball.vf = new Vector(BrachCurve.line[BrachCurve.line.length-2] - BrachCurve.line[BrachCurve.line.length-4], BrachCurve.line[BrachCurve.line.length-1] - BrachCurve.line[BrachCurve.line.length-3]);
+					Ball.vf.extend(Ball.v);
+					Ball.vf.y = Ball.vf.y + -Ball.a*BrachCurve.dt;
+					var normal = new Vector(Ball.vf.x, Ball.vf.y);
+					normal = normal.normalise();
+					normal.rotate(Math.PI * -0.5);
+					normal.extend(Ball.radius);
+					Ball.posX = BrachCurve.line[BrachCurve.line.length-2] + Ball.vf.x*BrachCurve.dt + normal.x;
+					Ball.posY = BrachCurve.line[BrachCurve.line.length-1] + Ball.vf.y*BrachCurve.dt + normal.y;
+					Ball.isOnLine = false;
+				}
+				// After ball has fallen off line
+				else if(!Ball.isOnLine){ 
+					Ball.vf.y = Ball.vf.y + -Ball.a*BrachCurve.dt;
+					Ball.posX += Ball.vf.x*BrachCurve.dt;
+					Ball.posY += Ball.vf.y*BrachCurve.dt;
+				}
+				// Otherwise update position along line
+				else{ 
+					var x1 = BrachCurve.line[Ball.currentSeg * 2];
+					var y1 = BrachCurve.line[Ball.currentSeg * 2 + 1];
+					var x2 = BrachCurve.line[Ball.currentSeg * 2 + 2];
+					var y2 = BrachCurve.line[Ball.currentSeg * 2 + 3];
+					var dx = x2 - x1;
+					var dy = y2 - y1;
+					theta = Math.atan(dy/dx);
+					var dv = -BrachCurve.dt*(-9.81*BrachCurve.conversionFactor)*(dy/Math.sqrt(dx*dx + dy*dy));
+					Ball.v = Ball.v + dv;
+					if(!BrachCurve.isFinished && !BrachCurve.isFirstSample){
+						BrachCurve.deltaS += Ball.v*BrachCurve.dt;
+						BrachCurve.samplerCounter++;
+						if(BrachCurve.samplerCounter >= (document.getElementById("slider").value/30)){
+							BrachCurve.table.push(BrachCurve.deltaS, 1/Ball.v);
+							BrachCurve.samplerCounter = 0;
+							BrachCurve.deltaS = 0;
+							updateTable();
+						}
+					}
+					else if(BrachCurve.isFirstSample){
+						BrachCurve.isFirstSample = false;
+					}
+					Ball.deltaD = Ball.deltaD + Ball.v*BrachCurve.dt;
+					var s = 0;
+					var l = 0;
+					for(var i = 3; i < BrachCurve.line.length; i+=2){
+						var lv = new Vector(BrachCurve.line[i-1] - BrachCurve.line[i-3], BrachCurve.line[i] - BrachCurve.line[i-2]);
+						var normal = new Vector(lv.x, lv.y);
+						normal.rotate(Math.PI * -0.5);
+						normal.extend(Ball.radius);
+						for(var j = 0; j < Math.round(lv.magnitude()); j++){
+							if(l > Math.round(Ball.deltaD)){
+								lv.extend(j);
+								Ball.posX = BrachCurve.line[i-3] + lv.x + normal.x;
+								Ball.posY = BrachCurve.line[i-2] + lv.y + normal.y;
+								Ball.currentSeg = s;
+								return;
+							}
+							l++;
+						}
+						s++;
+					}
+				}
+			}
+			
+			/*
+			// function updateBall call ballMotion to calculate new ball pos, 
+			//	as well as checks if ball crosses finish line and if so ajaxes
+			//	leaderboard data to server and draws Riemman Sum rectangles on 
+			//	the second canvas
+			*/
+			function updateBall() {
+				if (BrachCurve.isStarted){
+					var lastPos = new Vector(Ball.posX, Ball.posY);
+					ballMotion();
+					// If ball crossed finish line then ajax leaderboard data to server and begin drawing the Riemman Sum
+					if (!BrachCurve.isFinished && lastPos.x < 500 && Ball.posX > 500 && Ball.posY > 261 && Ball.posY < 301){
+						BrachCurve.isFinished = true;
+						var name = document.getElementById("name").value; // Name written in name input
+						BrachCurve.finishTime = BrachCurve.time; // Current time is time of finish
+						
+						// http request to store leaderboard data
+						var xhttp = new XMLHttpRequest();
+						xhttp.open("http", "/data?name=" + name + "&time=" + BrachCurve.finishTime, true);
+						xhttp.send();
+						leaderboard();
+						var lram = 0;
+						for(var i = 1; i < BrachCurve.table.length-1; i+=2){
+							lram = lram + (BrachCurve.table[i-1]*BrachCurve.table[i]);
+						}
+						var rram = 0;
+						for(var i = 3; i < BrachCurve.table.length; i+=2){
+							rram = rram + (BrachCurve.table[i-1]*BrachCurve.table[i]);
+						}
+						document.getElementById("calcTime").innerHTML = Math.round(((lram + rram)/2)*1000)/1000 + "s";
+						
+						//Draw rectangles
+						//Delta s is table[i-1] 1/v is table[i]
+						var cvs = document.getElementById("frame2");
+						var ctx = cvs.getContext("2d");
+						ctx.clearRect(0, 0, cvs.width, cvs.height);
+						var lastS = 0;
+						var totalS = 0;
+						for(var i = 1; i < BrachCurve.table.length; i+=2){
+							totalS += BrachCurve.table[i-1];
+						}
+						var cf = cvs.width/totalS;
+						for(var i = 1; i < BrachCurve.table.length; i+=2){
+							ctx.beginPath();
+							ctx.rect(lastS*cf, cvs.height, BrachCurve.table[i-1]*cf, -BrachCurve.table[i]*1000);
+							ctx.strokeStyle = "#000000";
+							var color = Math.floor(Math.random() * 16777216).toString(16);
+							ctx.fillStyle = 'rgb(' + (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256)) + ',' + (Math.floor(Math.random() * 256)) + ')';
+							ctx.fill();
+							ctx.stroke();
+							lastS += BrachCurve.table[i-1];
+						}
+					}
+				}
+			    BrachCurve.context.beginPath();
+				BrachCurve.context.arc(Ball.posX, Ball.posY, Ball.radius, 0, 2 * Math.PI, false);
+				BrachCurve.context.fillStyle = "#FF6A4B";
+				BrachCurve.context.fill();
+				BrachCurve.context.lineWidth = 1;
+				BrachCurve.context.strokeStyle = "#1a1a1a";
+				BrachCurve.context.stroke();
+			}
+			
+			function onMouseUp() {
+				BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
+			}
+			
+			function onMouseMove() { // Is triggered while mouse is being left clicked and when mouse is in canvas
+			    if(!BrachCurve.isStarted){
+				    var x = BrachCurve.cursorX - BrachCurve.canvas.offsetLeft;
+                    var y = BrachCurve.cursorY - BrachCurve.canvas.offsetTop;
+                    BrachCurve.line.push(x);
+                    BrachCurve.line.push(y);
+				}
+			}
+			function onMouseDown(){
+				onMouseMove();
+				BrachCurve.canvas.addEventListener("mousemove", onMouseMove);
+			}
+			BrachCurve.canvas.addEventListener("mousedown", onMouseDown);
+			document.addEventListener("mouseup", onMouseUp);
+			BrachCurve.canvas.addEventListener("onmouseout", function(){BrachCurve.isMouseIn = false});
+			BrachCurve.canvas.addEventListener("onmouseover", function(){BrachCurve.isMouseIn = true});
+			
+			function clear() {
+				BrachCurve.context.clearRect(0, 0, this.BrachCurve.canvas.width, this.BrachCurve.canvas.height);
+			}
+			
+			function update() {
+				BrachCurve.context.clearRect(0, 0, this.BrachCurve.canvas.width, this.BrachCurve.canvas.height);
+			    if (BrachCurve.line.length > 2){
+			        BrachCurve.context.beginPath();
+			        BrachCurve.context.moveTo(BrachCurve.line[0], BrachCurve.line[1]);
+					for(var i = 3; i < BrachCurve.line.length; i+=2){
+						BrachCurve.context.lineTo(BrachCurve.line[i - 1], BrachCurve.line[i]);
+					}
+					BrachCurve.context.stroke();
+			    }
+				BrachCurve.context.font = "16px Neuton";
+				BrachCurve.context.fillText("Finish Line", 465, 250);
+				BrachCurve.context.fillStyle = "#000000";
+				if(BrachCurve.isStarted && !BrachCurve.isFinished){
+					BrachCurve.time += 0.03;
+					BrachCurve.time = Math.round(BrachCurve.time*1000)/1000;
+					BrachCurve.context.fillText("Time: " + BrachCurve.time + "s", 8, 20);
+				}
+				else if(BrachCurve.isStarted && BrachCurve.isFinished){
+					BrachCurve.context.fillText("Time: " + BrachCurve.finishTime.toString() + "s", 8, 20);
+				}
+				BrachCurve.context.beginPath();
+			    BrachCurve.context.moveTo(500, 260);
+				BrachCurve.context.lineTo(500, 300);
+				BrachCurve.context.lineWidth = 5;
+				BrachCurve.context.stroke();
+				updateBall();
+			}
+			
+			function start() {
+				BrachCurve.isStarted = true;
+			    BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
+				BrachCurve.canvas.removeEventListener("mousedown", onMouseDown);
+				for(var i = 3; i < BrachCurve.line.length; i+=2){ //Line Smoothing
+					for(var j = 0; j < 10; j++){
+						var lv = new Vector(BrachCurve.line[i-1] - BrachCurve.line[i-3], BrachCurve.line[i] - BrachCurve.line[i-2]);
+						if(lv.magnitude() <= 5){ 
+							BrachCurve.line.splice(i, 1);
+							BrachCurve.line.splice(i - 1, 1);
+						}
+					}
+				}
+				for(var i = 3; i < BrachCurve.line.length; i+=2){ //Find length of line by using vec mag
+					var lv = new Vector(BrachCurve.line[i-1] - BrachCurve.line[i-3], BrachCurve.line[i] - BrachCurve.line[i-2]);
+					BrachCurve.lineLength += lv.magnitude();
+				}
+				BrachCurve.lineLength = Math.round(BrachCurve.lineLength);
+				if(BrachCurve.lineLength == 0){ //Glitch fix
+					BrachCurve.lineLength = -1;
+				}
+			}
+			var interval = setInterval(leaderboard, 5000);
+			function leaderboard(){
+				var xhttp = new XMLHttpRequest();
+				xhttp.onreadystatechange = function() {
+					if (this.readyState == 4 && this.status == 200) {
+						document.getElementById("leaderboard").innerHTML = "<tr><td><h3>Top ten players</h3></td></tr><tr><td><b>Time</b></td><td><b>Name</b></td></tr>" + this.responseText;
+					}
+				};
+				xhttp.open("http", "/leaderboard", true);
+				xhttp.send();
+			}
+			leaderboard();
+        </script>
+    </body>
+</html>

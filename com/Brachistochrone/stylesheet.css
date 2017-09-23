@@ -1,0 +1,148 @@
+@import url('https://fonts.googleapis.com/css?family=Neuton');
+html, body {
+	font-family: 'Neuton', serif;
+	margin: 0;
+	padding: 0;
+}
+#container {
+	min-height: 100%;
+	width: 100%;
+	min-width: 1000px;
+	position: absolute;
+	text-align: center;
+	display:inline-block
+}
+#body {
+	padding-top: 115px;
+	padding-bottom: 35px;
+	text-align: center;
+}
+#frame {
+	width: 600px;
+	height: 370px; 
+	left: calc(50% - 300px);
+	top: 180px;
+	cursor: pointer;
+	border: 1px solid #d3d3d3;
+	background-color: #f1f1f1;
+}
+#frame::selection {
+	background: rgba(0, 0, 0, 0);
+}
+#frame2 {
+	width: 300px;
+	height: 185px; 
+	border: 1px solid #d3d3d3;
+	background-color: #f1f1f1;
+}
+#frame2::selection {
+	background: rgba(0, 0, 0, 0);
+}
+#banner{
+	min-width: 600px;
+	position: static;
+	background: #333333;
+	text-align: center;
+	color: white;
+	width: 100%;
+	height: 65px;
+	padding-top: 30px;
+	
+}
+#banner:before{
+	content: "";
+	position: absolute;
+	z-index: -1;
+	width: 50%;
+	height: 30px;
+	left: 50%;
+	top: 100px;
+	background: linear-gradient(to right bottom, #333333 50%, transparent 52%);
+}
+#banner:after{
+	content: "";
+	position: absolute;
+	z-index: -1;
+	width: 50%;
+	height: 30px;
+	left: 0;
+	top: 100px;
+	background: linear-gradient(to left bottom, #333333 50%, transparent 52%);
+}
+.header{
+	background: #d1d1d1;
+	width: 100%;
+	height: 5px;
+}
+.header:before{
+	content: "";
+	position: absolute;
+	z-index: 0;
+	width: 50%;
+	height: 30px;
+	left: 50%;
+	top: 5px;
+	background: linear-gradient(to right bottom, #d1d1d1 50%, transparent 52%);
+}
+.header:after{
+	content: "";
+	position: absolute;
+	z-index: 0;
+	width: 50%;
+	height: 30px;
+	left: 0;
+	top: 5px;
+	background: linear-gradient(to left bottom, #d1d1d1 50%, transparent 52%);
+}
+.footer{
+	position: absolute;
+	z-index: 10;
+	bottom: 0;
+	background: #d1d1d1;
+	box-shadow: 0 -1px 2px #f1f1f1;
+	width: 100%;
+	height: 25px;
+	padding-top: 10px;
+	
+}
+.button{
+	position: absolute;
+	cursor: pointer;
+	background: #f7f7f7;
+	border: 1px solid #a9a9a9;
+	width: 210px;
+	font-size: 14px;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 40px;
+	padding-right: 40px;
+	border-bottom: 4px solid #a9a9a9;
+}
+.button:hover{
+	background: #c6c6c6;
+}
+.button:active{
+	background: #a5a5a5;
+	border-bottom: 2px solid #c9c9c9;
+	transform: translateY(2px);
+	border-color: #a9a9a9;
+}
+
+table{
+	padding: 10px;
+}
+
+tr td
+{
+	background-color: #ffffff;
+	padding-left: 5px;
+	padding-right: 5px;
+}
+
+tr:nth-child(even) td
+{
+	background-color: #cccccc;
+	border-color: #cccccc;
+	padding-left: 5px;
+	padding-right: 5px;
+}
