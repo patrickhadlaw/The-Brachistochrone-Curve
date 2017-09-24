@@ -1,8 +1,8 @@
 <!doctype html>
 <!--
 	The Brachistochrone Curve
-	Developed by: Patrick Hadlaw
-	Copyright: Patrick Stanislaw Hadlaw
+	by: Patrick Hadlaw
+	copyright: Patrick Stanislaw Hadlaw
 -->
 <html>
     <head>
@@ -383,7 +383,7 @@
 				BrachCurve.context.stroke();
 			}
 			
-			function onMouseUp() {
+			function onMouseUp() { // When left click is release stop tracing line
 				BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
 			}
 			
@@ -395,7 +395,7 @@
                     BrachCurve.line.push(y);
 				}
 			}
-			function onMouseDown(){
+			function onMouseDown(){ // When left click down start tracing line
 				onMouseMove();
 				BrachCurve.canvas.addEventListener("mousemove", onMouseMove);
 			}
@@ -404,10 +404,10 @@
 			BrachCurve.canvas.addEventListener("onmouseout", function(){BrachCurve.isMouseIn = false});
 			BrachCurve.canvas.addEventListener("onmouseover", function(){BrachCurve.isMouseIn = true});
 			
-			function clear() {
-				BrachCurve.context.clearRect(0, 0, this.BrachCurve.canvas.width, this.BrachCurve.canvas.height);
-			}
-			
+			/*
+			// function update call updates all canvas elements
+			// as well as runs updateBall
+			*/
 			function update() {
 				BrachCurve.context.clearRect(0, 0, this.BrachCurve.canvas.width, this.BrachCurve.canvas.height);
 			    if (BrachCurve.line.length > 2){
@@ -437,11 +437,15 @@
 				updateBall();
 			}
 			
+			/*
+			// function start begins ball motion after 
+			// user clicks start button
+			*/
 			function start() {
 				BrachCurve.isStarted = true;
 			    BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
 				BrachCurve.canvas.removeEventListener("mousedown", onMouseDown);
-				for(var i = 3; i < BrachCurve.line.length; i+=2){ //Line Smoothing
+				for(var i = 3; i < BrachCurve.line.length; i+=2){ // Line Smoothing: removes line verticies that are too close together
 					for(var j = 0; j < 10; j++){
 						var lv = new Vector(BrachCurve.line[i-1] - BrachCurve.line[i-3], BrachCurve.line[i] - BrachCurve.line[i-2]);
 						if(lv.magnitude() <= 5){ 
@@ -459,6 +463,11 @@
 					BrachCurve.lineLength = -1;
 				}
 			}
+			
+			/*
+			// function leaderboard asynchronously updates the
+			// leaderboard table at an interval of every five seconds
+			*/
 			var interval = setInterval(leaderboard, 5000);
 			function leaderboard(){
 				var xhttp = new XMLHttpRequest();
@@ -471,6 +480,7 @@
 				xhttp.send();
 			}
 			leaderboard();
+			
         </script>
     </body>
 </html>

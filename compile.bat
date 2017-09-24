@@ -4,7 +4,7 @@ cls
 :A
 set /p compile=">"
 echo building %compile%
-set GOPATH=%cd%
+set GOROOT=%cd%
 go build %compile%
 echo done
 goto A
