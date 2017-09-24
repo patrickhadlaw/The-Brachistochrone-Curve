@@ -41,8 +41,8 @@
 				<!-- Start/drop and reset buttons -->
 				
 				<div>
-					<div class="button" style="top: 590px; left: calc(50% - 300px);" onclick="start()">Drop</div>
-					<div class="button" style="top: 590px; right: calc(50% - 300px);" onclick="reset()">Reset</div>
+					<div class="button" style="top: 590px; left: calc(50% - 300px);" onclick="BrachCurve.start()">Drop</div>
+					<div class="button" style="top: 590px; right: calc(50% - 300px);" onclick="BrachCurve.reset()">Reset</div>
 				</div>
 				
 				<br/>
@@ -52,7 +52,7 @@
 				
 				<b>Sampling time (smaller sampling time creates smaller <br/>
 				rectangles which are more accurate).</b><br/>
-				<input id="slider" type="range"  value="30" min="30" max="600" step="30" onchange="slider(this.value)"/>
+				<input id="slider" type="range"  value="30" min="30" max="600" step="30" onchange="BrachCurve.slider(this.value)"/>
 				<div id="sliderNum"></div>
 				
 				<h3>What is the fastest path from the ball to the finish line?</h3>
@@ -143,7 +143,6 @@
 			
             BrachCurve.canvas = document.getElementById("frame"); // First canvas displays simulation
             BrachCurve.context = BrachCurve.canvas.getContext("2d");
-			BrachCurve.interval = setInterval(update, 30); // Update at 30 times per second
 			BrachCurve.dt = 0.03; // Time step
 			BrachCurve.isStarted = false;
 			BrachCurve.line = [100, 105]; // Array of points representing a line (first point is right under the ball)
@@ -172,13 +171,8 @@
 			Ball.vf = new Vector(0, 0); // Is velocity of ball after fallen off line
 			Ball.isOnLine = true; // Is whether the ball is on or off the line
 			
-			//Riemman Sum vars
-			var RieSum = {};
-			
-			
-			
-			// Reset game: on click of reset button, sets all vars back to their original state
-			function reset(){
+			// Reset simulation: on click of reset button, sets all vars back to their original state
+			BrachCurve.reset = function(){
 				BrachCurve.isStarted = false;
 				BrachCurve.isFinished = false;
 				Ball.posX = 100;
@@ -195,11 +189,9 @@
 				Ball.isOnLine = true;
 				BrachCurve.time = 0;
 				BrachCurve.finishTime = 0;
-				updateTable();
-				BrachCurve.canvas.addEventListener("mousedown", onMouseDown);
+				BrachCurve.updateTable();
+				BrachCurve.canvas.addEventListener("mousedown", BrachCurve.onMouseDown);
 			}
-			
-			
 			
 			//Get cursor position
 			BrachCurve.cursorX = 0;
@@ -209,14 +201,14 @@
 				BrachCurve.cursorY = e.pageY;
 			}
 			
-			function slider(newValue) // Sampling time slider
+			BrachCurve.slider = function(newValue) // Sampling time slider
 			{
 				document.getElementById("sliderNum").innerHTML=newValue + "ms";
 			}
-			slider(document.getElementById("slider").value);
+			BrachCurve.slider(document.getElementById("slider").value);
 			
 			// This function updates dataTable by inserting change in position along curve and 1/velocity values: which correspond to the dimensions of rectangles in Riemman Sum
-			function updateTable(){
+			BrachCurve.updateTable = function(){
 				var t = "<td><b>&#916;s</b></td><td><b>1/v</b></td>";
 				for(var i = 1; i < BrachCurve.table.length && i < 50; i+=2){
 					t = t + "<tr><td>" + Math.round(BrachCurve.table[i-1]*1000)/1000 + "</td><td>" + Math.round(BrachCurve.table[i]*1000)/1000 + "</td></tr>"; // Insert data into table and round to thousandth digit
@@ -230,11 +222,11 @@
 			
 			
 			/*
-			// function ballMotion calculates position and velocity of ball along line,
+			// function calculateMotion calculates position and velocity of ball along line,
 			//	position is calculated by tracking balls distance along line then setting
 			//	balls position one radius away from line. Involves no collision calculation.
 			*/
-			function ballMotion(){
+			Ball.calculateMotion = function(){
 				// if no line was drawn then drop the ball straight down			
 				if (BrachCurve.lineLength <= 0){ 
 					Ball.vf.y = Ball.vf.y + -Ball.a*BrachCurve.dt;
@@ -291,7 +283,7 @@
 							BrachCurve.table.push(BrachCurve.deltaS, 1/Ball.v);
 							BrachCurve.samplerCounter = 0;
 							BrachCurve.deltaS = 0;
-							updateTable();
+							BrachCurve.updateTable();
 						}
 					}
 					else if(BrachCurve.isFirstSample){
@@ -321,26 +313,26 @@
 			}
 			
 			/*
-			// function updateBall call ballMotion to calculate new ball pos, 
-			//	as well as checks if ball crosses finish line and if so ajaxes
-			//	leaderboard data to server and draws Riemman Sum rectangles on 
-			//	the second canvas
+			// function Ball.update calls Ball.calculateMotion to calculate new ball pos, 
+			// as well as checks if ball crosses finish line and if so ajaxes
+			// leaderboard data to server and draws Riemman Sum rectangles on 
+			// the second canvas
 			*/
-			function updateBall() {
+			Ball.update = function() {
 				if (BrachCurve.isStarted){
 					var lastPos = new Vector(Ball.posX, Ball.posY);
-					ballMotion();
+					Ball.calculateMotion();
 					// If ball crossed finish line then ajax leaderboard data to server and begin drawing the Riemman Sum
 					if (!BrachCurve.isFinished && lastPos.x < 500 && Ball.posX > 500 && Ball.posY > 261 && Ball.posY < 301){
 						BrachCurve.isFinished = true;
 						var name = document.getElementById("name").value; // Name written in name input
 						BrachCurve.finishTime = BrachCurve.time; // Current time is time of finish
 						
-						// http request to store leaderboard data
+						// http request to give users time and name
 						var xhttp = new XMLHttpRequest();
 						xhttp.open("http", "/data?name=" + name + "&time=" + BrachCurve.finishTime, true);
 						xhttp.send();
-						leaderboard();
+						BrachCurve.leaderboard();
 						var lram = 0;
 						for(var i = 1; i < BrachCurve.table.length-1; i+=2){
 							lram = lram + (BrachCurve.table[i-1]*BrachCurve.table[i]);
@@ -383,11 +375,11 @@
 				BrachCurve.context.stroke();
 			}
 			
-			function onMouseUp() { // When left click is release stop tracing line
-				BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
+			BrachCurve.onMouseUp = function() { // When left click is release stop tracing line
+				BrachCurve.canvas.removeEventListener("mousemove", BrachCurve.onMouseMove);
 			}
 			
-			function onMouseMove() { // Is triggered while mouse is being left clicked and when mouse is in canvas
+			BrachCurve.onMouseMove = function() { // Is triggered while mouse is being left clicked and when mouse is in canvas
 			    if(!BrachCurve.isStarted){
 				    var x = BrachCurve.cursorX - BrachCurve.canvas.offsetLeft;
                     var y = BrachCurve.cursorY - BrachCurve.canvas.offsetTop;
@@ -395,12 +387,12 @@
                     BrachCurve.line.push(y);
 				}
 			}
-			function onMouseDown(){ // When left click down start tracing line
-				onMouseMove();
-				BrachCurve.canvas.addEventListener("mousemove", onMouseMove);
+			BrachCurve.onMouseDown = function(){ // When left click down start tracing line
+				BrachCurve.onMouseMove();
+				BrachCurve.canvas.addEventListener("mousemove", BrachCurve.onMouseMove);
 			}
-			BrachCurve.canvas.addEventListener("mousedown", onMouseDown);
-			document.addEventListener("mouseup", onMouseUp);
+			BrachCurve.canvas.addEventListener("mousedown", BrachCurve.onMouseDown);
+			document.addEventListener("mouseup", BrachCurve.onMouseUp);
 			BrachCurve.canvas.addEventListener("onmouseout", function(){BrachCurve.isMouseIn = false});
 			BrachCurve.canvas.addEventListener("onmouseover", function(){BrachCurve.isMouseIn = true});
 			
@@ -408,8 +400,8 @@
 			// function update call updates all canvas elements
 			// as well as runs updateBall
 			*/
-			function update() {
-				BrachCurve.context.clearRect(0, 0, this.BrachCurve.canvas.width, this.BrachCurve.canvas.height);
+			BrachCurve.update = function() {
+				BrachCurve.context.clearRect(0, 0, BrachCurve.canvas.width, BrachCurve.canvas.height);
 			    if (BrachCurve.line.length > 2){
 			        BrachCurve.context.beginPath();
 			        BrachCurve.context.moveTo(BrachCurve.line[0], BrachCurve.line[1]);
@@ -434,17 +426,19 @@
 				BrachCurve.context.lineTo(500, 300);
 				BrachCurve.context.lineWidth = 5;
 				BrachCurve.context.stroke();
-				updateBall();
+				Ball.update();
 			}
+			
+			BrachCurve.interval = setInterval(BrachCurve.update, 30); // Update at 30 times per second
 			
 			/*
 			// function start begins ball motion after 
 			// user clicks start button
 			*/
-			function start() {
+			BrachCurve.start = function() {
 				BrachCurve.isStarted = true;
-			    BrachCurve.canvas.removeEventListener("mousemove", onMouseMove);
-				BrachCurve.canvas.removeEventListener("mousedown", onMouseDown);
+			    BrachCurve.canvas.removeEventListener("mousemove", BrachCurve.onMouseMove);
+				BrachCurve.canvas.removeEventListener("mousedown", BrachCurve.onMouseDown);
 				for(var i = 3; i < BrachCurve.line.length; i+=2){ // Line Smoothing: removes line verticies that are too close together
 					for(var j = 0; j < 10; j++){
 						var lv = new Vector(BrachCurve.line[i-1] - BrachCurve.line[i-3], BrachCurve.line[i] - BrachCurve.line[i-2]);
@@ -468,8 +462,7 @@
 			// function leaderboard asynchronously updates the
 			// leaderboard table at an interval of every five seconds
 			*/
-			var interval = setInterval(leaderboard, 5000);
-			function leaderboard(){
+			BrachCurve.leaderboard = function(){
 				var xhttp = new XMLHttpRequest();
 				xhttp.onreadystatechange = function() {
 					if (this.readyState == 4 && this.status == 200) {
@@ -479,7 +472,8 @@
 				xhttp.open("http", "/leaderboard", true);
 				xhttp.send();
 			}
-			leaderboard();
+			BrachCurve.leaderboard();
+			BrachCurve.leaderboardInterval = setInterval(BrachCurve.leaderboard, 5000);
 			
         </script>
     </body>
