@@ -26,8 +26,9 @@ func main(){
 	
 	mux := http.NewServeMux()
 	
-	// FileServer in directory com/Brachistochrone/
-	mux.Handle("/com/", http.StripPrefix("/com/", http.FileServer(http.Dir("com/Brachistochrone/"))))
+	// FileServer in directory com/brachistochrone/
+	fs := http.FileServer(http.Dir("com/files"))
+	mux.Handle("/files/", http.StripPrefix("/files/", fs))
 	
 	// Default response: writes The Brachistochrone Curve.html file 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
@@ -38,7 +39,6 @@ func main(){
 		}else{
 			io.WriteString(w, string(f))
 		}
-		
 	})
 	
 	// Data url obtains leaderboard values, name is the users name and time is the time taken for ball to reach finish line

@@ -7,7 +7,7 @@
 <html>
     <head>
         <title>The Brachistochrone Curve</title>
-		<link rel="stylesheet" type="text/css" href="Brachistochrone/stylesheet.css">
+		<link rel="stylesheet" type="text/css" href="files/stylesheet.css">
     </head>
     
     <body>
@@ -48,7 +48,7 @@
 				<br/>
 				<br/>
 				
-				<!-- Sampling time slider: allows user to choose how accurate the datatable will be and thus how accurate the Riemman Sum will be (more rectangles) -->
+				<!-- Sampling time slider: allows user to choose how accurate the datatable will be and thus how accurate the Riemann Sum will be (more rectangles) -->
 				
 				<b>Sampling time (smaller sampling time creates smaller <br/>
 				rectangles which are more accurate).</b><br/>
@@ -82,7 +82,7 @@
 					</tr>
 				</table>
 				
-				<!-- Riemman Sum canvas -->
+				<!-- Riemann Sum canvas -->
 				
 				<canvas id="frame2"></canvas>
 				
@@ -90,7 +90,7 @@
 				
 				<!-- Image of integral representing time of ball rolling along curve -->
 				
-				<img src="Brachistochrone/integral.png"/><div id="calcTime"></div><br/>
+				<img src="files/integral.png"/><div id="calcTime"></div><br/>
 				
 			</div>
 			<div class="footer"><b>Copyright Patrick Hadlaw</b></div>
@@ -207,7 +207,7 @@
 			}
 			BrachCurve.slider(document.getElementById("slider").value);
 			
-			// This function updates dataTable by inserting change in position along curve and 1/velocity values: which correspond to the dimensions of rectangles in Riemman Sum
+			// This function updates dataTable by inserting change in position along curve and 1/velocity values: which correspond to the dimensions of rectangles in Riemann Sum
 			BrachCurve.updateTable = function(){
 				var t = "<td><b>&#916;s</b></td><td><b>1/v</b></td>";
 				for(var i = 1; i < BrachCurve.table.length && i < 50; i+=2){
@@ -315,14 +315,14 @@
 			/*
 			// function Ball.update calls Ball.calculateMotion to calculate new ball pos, 
 			// as well as checks if ball crosses finish line and if so ajaxes
-			// leaderboard data to server and draws Riemman Sum rectangles on 
+			// leaderboard data to server and draws Riemann Sum rectangles on 
 			// the second canvas
 			*/
 			Ball.update = function() {
 				if (BrachCurve.isStarted){
 					var lastPos = new Vector(Ball.posX, Ball.posY);
 					Ball.calculateMotion();
-					// If ball crossed finish line then ajax leaderboard data to server and begin drawing the Riemman Sum
+					// If ball crossed finish line then ajax leaderboard data to server and begin drawing the Riemann Sum
 					if (!BrachCurve.isFinished && lastPos.x < 500 && Ball.posX > 500 && Ball.posY > 261 && Ball.posY < 301){
 						BrachCurve.isFinished = true;
 						var name = document.getElementById("name").value; // Name written in name input
