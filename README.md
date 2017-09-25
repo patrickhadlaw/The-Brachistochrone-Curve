@@ -4,15 +4,9 @@ description: A golang web app/game relating to the brachistochrone curve, integr
 by: Patrick Stanislaw Hadlaw
 
 ### how to run: 
-Windows:
+
 ```
-install
-clog
-compile
-host
+go build host
 ```
-Other:
-```
-go install clog
-go build host.go
-```
+
+Or you can open the file /com/The Brachistochrone Curve.html
