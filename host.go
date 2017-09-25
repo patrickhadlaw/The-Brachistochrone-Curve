@@ -12,12 +12,12 @@ package main
 
 import(
 	"net/http"
-	"clog" // Custom log package
 	"io/ioutil"
 	"io"
 	"strconv"
+	"errors"
 	"sort"
-	"os"
+	"fmt"
 )
 
 func main(){
@@ -34,7 +34,7 @@ func main(){
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request){
 		f, err := ioutil.ReadFile("com/The Brachistochrone Curve.html");
 		if err != nil{
-			clog.Error(err.Error())
+			fmt.Println(err.Error())
 			io.WriteString(w, "<h1>404: File Not Found</h1>")
 		}else{
 			io.WriteString(w, string(f))
@@ -52,11 +52,11 @@ func main(){
 		}
 		m, ok := r.URL.Query()["time"]
 		if !ok{
-			clog.Error("Missing time attrib")
+			fmt.Println("Error: missing time attrib")
 		}else{
 			i, err := strconv.ParseFloat(m[0], 64)
 			if err != nil{
-				clog.Error(err.Error())
+				fmt.Println(err.Error())
 			}else{
 				_, ok := leaderboard[i]
 				if !ok{
@@ -101,7 +101,7 @@ func main(){
 	mux.HandleFunc("/favicon.ico", func(w http.ResponseWriter, r *http.Request){
 		f, err := ioutil.ReadFile("favicon.ico");
 		if err != nil{
-			clog.Error(err.Error())
+			fmt.Println(err.Error())
 			io.WriteString(w, "<h1>404: File Not Found</h1>")
 		}else{
 			io.WriteString(w, string(f))
@@ -120,12 +120,12 @@ func main(){
 	mux.HandleFunc("/exit/", func(w http.ResponseWriter, r *http.Request){
 		n, ok := r.URL.Query()["pass"]
 		if ok && n[0] == "admin"{
-			os.Exit(1)
+			os.Exit(0)
 		}
 	})
 	
 	err := http.ListenAndServe(":8080", mux)
 	if err != nil{
-		clog.Error(err.Error())
+		fmt.Println(err.Error())
 	}
 }
