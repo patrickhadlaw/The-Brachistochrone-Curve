@@ -8,13 +8,13 @@ by: Patrick Stanislaw Hadlaw
 Windows:
 ```
 go build host
-host
 ```
 Other:
 ```
 go build host
-./host
 ```
+
+### Then run host and connect to localhost:8080
 
 Or you can open the file /com/The Brachistochrone Curve.html
 
