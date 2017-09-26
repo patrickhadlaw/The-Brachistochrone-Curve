@@ -17,3 +17,5 @@ go build host
 ```
 
 Or you can open the file /com/The Brachistochrone Curve.html
+
+![Screenshot 1](https://raw.githubusercontent.com/patrickhadlaw/The-Brachistochrone-Curve/master/screenshot_1.png?raw=true "")
