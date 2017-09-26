@@ -5,16 +5,11 @@ by: Patrick Stanislaw Hadlaw
 
 ### how to run: 
 
-Windows:
-```
-go build host
-```
-Other:
 ```
 go build host
 ```
 
-### Then run host and connect to localhost:8080
+#### Then run host and connect to localhost:8080
 
 Or you can open the file /com/The Brachistochrone Curve.html
 
